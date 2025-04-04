@@ -10,6 +10,7 @@
     "ngrok": "ngrok http 3000"
   },
   "dependencies": {
+    "@metamask-private/delegator-core-viem": "^0.8.0",
     "@curvegrid/multibaas-sdk": "^1.0.2",
     "@selfxyz/core": "^0.0.21",
     "@selfxyz/qrcode": "^0.0.17",
