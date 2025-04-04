@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createConfig, http, WagmiProvider } from "wagmi";
-import { celoAlfajores as chain } from "viem/chains";
+import { sepolia as chain } from "viem/chains";
 import { ReactNode } from "react";
 import { metaMask } from "wagmi/connectors";
 
