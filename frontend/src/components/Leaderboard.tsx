@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 
 type Player = {
   id: string;
@@ -8,37 +9,49 @@ type Player = {
   personality: string;
   territories: number;
   resources: number;
+  color: string;
 };
 
 type LeaderboardProps = {
   players: Player[];
+  currentPlayerId?: string;
 };
 
-export default function Leaderboard({ players }: LeaderboardProps) {
+export default function Leaderboard({ players, currentPlayerId }: LeaderboardProps) {
   const [sortedPlayers, setSortedPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
     // Sort players by territories (descending)
     const sorted = [...players].sort((a, b) => b.territories - a.territories);
     setSortedPlayers(sorted);
-  }, [players]); // Re-sort whenever players prop changes
+  }, [players]);
 
   return (
     <div className="bg-zinc-900 rounded-lg p-4">
       <h2 className="text-xl font-bold mb-4">Leaderboard</h2>
       <div className="space-y-2">
         {sortedPlayers.map((player, index) => (
-          <div
-            key={player.id}
-            className="flex items-center justify-between p-2 bg-zinc-800 rounded"
-          >
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium">{index + 1}.</span>
-              <span className="font-medium">{player.name}</span>
+          <div key={player.id} className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <span className="text-zinc-500">#{index + 1}</span>
+              <Image
+                src={`https://api.cloudnouns.com/v1/pfp?background=n&body=none&text=${encodeURIComponent(
+                  player.name
+                )}&accessory=none`}
+                alt="Player Icon"
+                width={32}
+                height={32}
+                className="rounded-full"
+                unoptimized
+              />
+              <span className="font-medium">
+                {player.name}
+                {player.id === currentPlayerId && (
+                  <span className="text-zinc-500 ml-2">You</span>
+                )}
+              </span>
             </div>
-            <div className="text-sm text-zinc-400">
-              {player.territories} territories
-            </div>
+            <span>{player.territories} pts</span>
           </div>
         ))}
         {sortedPlayers.length === 0 && (

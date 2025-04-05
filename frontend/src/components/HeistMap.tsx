@@ -31,15 +31,15 @@ export default function HeistMap({ grid, currentPlayer }: HeistMapProps) {
   };
 
   const getPlayerColor = (playerName: string | null) => {
-    if (!playerName) return "gray";
+    if (!playerName) return "#1f2937"; // Dark gray for unowned
     
     // Generate a consistent random color for each player
     const hash = playerName.split('').reduce((acc, char) => {
       return char.charCodeAt(0) + ((acc << 5) - acc);
     }, 0);
     
-    // Convert hash to a color
-    const color = `hsl(${hash % 360}, 70%, 50%)`;
+    // Convert hash to a color with higher saturation and brightness
+    const color = `hsl(${hash % 360}, 80%, 60%)`;
     return color;
   };
 
@@ -64,32 +64,21 @@ export default function HeistMap({ grid, currentPlayer }: HeistMapProps) {
     return (
       <g 
         key={`${hex.q},${hex.r}`}
+        className="transition-all duration-300 hover:scale-110"
       >
         <polygon
           points={points}
           fill={getPlayerColor(hex.owner)}
           stroke="white"
           strokeWidth="2"
-          opacity={isCurrentPlayer || isAdjacent ? 1 : 0.7}
+          opacity={isCurrentPlayer || isAdjacent ? 1 : 0.9}
         />
-        {hex.resources > 0 && (
-          <text
-            x={x}
-            y={y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="white"
-            fontSize="12"
-          >
-            {hex.resources}
-          </text>
-        )}
       </g>
     );
   };
 
   return (
-    <div className="relative w-full h-[600px] border border-zinc-800 rounded-lg overflow-hidden">
+    <div className="relative w-full h-[600px] border border-zinc-800 rounded-lg overflow-hidden bg-zinc-900">
       <svg
         width="100%"
         height="100%"
