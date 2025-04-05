@@ -713,6 +713,9 @@ ${room.grid.map((hex) => hex.owner || ".").join(" ")}
 }
 
 function buildPrompt(stateDesc: string, player: Player): string {
+  const aggressiveThreshold = 50; // Threshold for aggressive behavior
+  const isAggressive = player.strategy.aggressive > aggressiveThreshold;
+  
   return `You are controlling the faction '${
     player.name
   }' with the following characteristics:
@@ -752,9 +755,10 @@ Strategic Guidelines:
    - With ${
      player.strategy.aggressive
    }% aggressive strategy, you should focus on:
-     * Attacking enemy territories
-     * Weakening opponents
-     * Taking calculated risks
+     * ${isAggressive ? 'PRIORITIZE ATTACKING ENEMY TERRITORIES - Your aggressive strategy is high, so you should focus on conquest and weakening opponents' : 'Attacking enemy territories when opportunities arise'}
+     * ${isAggressive ? 'Take calculated risks to expand your territory through force' : 'Take calculated risks'}
+     * ${isAggressive ? 'Target weaker opponents and expand aggressively' : 'Consider attacking when you have an advantage'}
+     * ${isAggressive ? 'Break alliances if it means gaining more territory' : 'Maintain strategic alliances'}
    
    - With ${
      player.strategy.diplomatic
@@ -778,16 +782,19 @@ Strategic Guidelines:
      player.allianceParams?.getMin || 0
    }) must be <= other player's giveMax
    - Consider your alliance parameters when proposing alliances
+   - ${isAggressive ? 'As an aggressive player, consider breaking alliances if it benefits your expansion' : 'Maintain alliances that benefit your strategy'}
 
 3. Territory Control:
-   - Expand to unclaimed territories when possible
-   - Attack enemy territories based on your aggressive strategy
+   - ${isAggressive ? 'PRIORITIZE ATTACKING ENEMY TERRITORIES - Your aggressive strategy demands conquest' : 'Expand to unclaimed territories when possible'}
+   - ${isAggressive ? 'Attack enemy territories aggressively, especially if they are weaker' : 'Attack enemy territories based on your aggressive strategy'}
    - Protect your territories based on your defensive strategy
+   - ${isAggressive ? 'Focus on weakening opponents through constant attacks' : 'Balance expansion with defense'}
 
 4. Resource Management:
    - Gather resources based on your opportunistic strategy
    - Share resources with allies based on your diplomatic strategy
    - Consider your alliance parameters when trading resources
+   - ${isAggressive ? 'Use resources to fuel your aggressive expansion' : 'Manage resources strategically'}
 
 Possible Actions:
 1. Expand: Take unclaimed territory
@@ -804,6 +811,7 @@ Your decision should reflect your strategy profile and alliance parameters. Cons
 - Alliance forming to win the game
 - Enemy positions and strength
 - Your strategic priorities based on your profile
+${isAggressive ? '- As an aggressive player, prioritize attacking and weakening opponents' : ''}
 
 Make your decision:`;
 }
