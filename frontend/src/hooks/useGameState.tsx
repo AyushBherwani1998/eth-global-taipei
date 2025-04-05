@@ -41,6 +41,7 @@ export interface GameState {
   currentPlayer: string;
   playerCount: number;
   started: boolean;
+  isGameOver: boolean;
 }
 
 export const useGame = () => {
@@ -53,6 +54,7 @@ export const useGame = () => {
     currentPlayer: "",
     playerCount: 0,
     started: false,
+    isGameOver: false,
   });
   const [messageHistory, setMessageHistory] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +67,6 @@ export const useGame = () => {
       "#45B7D1", // Blue
       "#96CEB4", // Green
       "#FFEEAD", // Yellow
-      "#D4A5A5", // Pink
       "#9B59B6", // Purple
       "#E67E22", // Orange
     ];
@@ -123,6 +124,7 @@ export const useGame = () => {
               currentPlayer: data.currentPlayer || "",
               playerCount: Number(data.playerCount) || 0,
               started: Boolean(data.started),
+              isGameOver: Boolean(data.isGameOver),
             });
 
             if (data.message) {
@@ -138,6 +140,12 @@ export const useGame = () => {
             ...prev,
             `Alliance proposal from ${data.from}: Give ${data.giveAmount}, Get ${data.getAmount}`,
           ]);
+        } else if (data.type === "end") {
+          setGameState(prev => ({
+            ...prev,
+            isGameOver: true,
+          }));
+          setMessageHistory((prev) => [...prev, "Game Over!"]);
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);

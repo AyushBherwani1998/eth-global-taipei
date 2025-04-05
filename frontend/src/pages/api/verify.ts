@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Initialize and configure the verifier
       const selfBackendVerifier = new SelfBackendVerifier(
         'my-app-scope',
-        'https://3735-2001-b400-e234-3a23-bdcf-9a99-f2de-22f9.ngrok-free.app/api/verify',
+        'https://8020-150-116-250-8.ngrok-free.app/api/verify',
         "uuid",
         true,
       );

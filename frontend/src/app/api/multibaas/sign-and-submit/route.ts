@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
     }
 
     const config = new MultiBaas.Configuration({
-      basePath: process.env.MULTIBAAS_BASE_URL,
-      accessToken: process.env.MULTIBAAS_API_KEY,
+      basePath: process.env.NEXT_PUBLIC_MULTIBAAS_BASE_URL_CELO,
+      accessToken: process.env.NEXT_PUBLIC_MULTIBAAS_API_KEY_CELO,
     });
 
     const hsmApi = new MultiBaas.HsmApi(config);

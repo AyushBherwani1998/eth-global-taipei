@@ -14,16 +14,17 @@ export async function POST(request: NextRequest) {
     }
 
     const config = new MultiBaas.Configuration({
-      basePath: process.env.MULTIBAAS_BASE_URL,
-      accessToken: process.env.MULTIBAAS_API_KEY,
+      basePath: process.env.NEXT_PUBLIC_MULTIBAAS_BASE_URL_CELO,
+      accessToken: process.env.NEXT_PUBLIC_MULTIBAAS_API_KEY_CELO,
     });
 
     const contractsApi = new MultiBaas.ContractsApi(config);
 
     const chain = "ethereum";
-    const deployedAddressOrAlias = "dune_token";
+    const deployedAddressOrAlias = "dune_token_1";
     const contractLabel = "dune_token";
     const contractMethod = "mint";
+
     const payload: MultiBaas.PostMethodArgs = {
       args: [address, amount.toString(16)],
       from: "0xCa9C01d814433a4052d771f359d68fde97F87d1f",

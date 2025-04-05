@@ -15,7 +15,7 @@ export const useSelfApp = () => {
     const selfApp: SelfApp = new SelfAppBuilder({
       appName: "Dune Wars",
       scope: "my-app-scope",
-      endpoint: "https://3735-2001-b400-e234-3a23-bdcf-9a99-f2de-22f9.ngrok-free.app/api/verify",
+      endpoint: "https://8020-150-116-250-8.ngrok-free.app/api/verify",
       endpointType: "https",
       userId,
       devMode: true, 

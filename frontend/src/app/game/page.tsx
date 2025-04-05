@@ -7,10 +7,12 @@ import ActivityFeed from "@/components/ActivityFeed";
 import HeistMap from "@/components/HeistMap";
 import TurnCounter from "@/components/TurnCounter";
 import useDelegatorSmartAccount from "@/hooks/useDelegatorSmartAccout";
+import GameOverDialog from "@/components/GameOverDialog";
 
 export default function GameLayout() {
   const { isConnected, gameState, messageHistory, joinRoom } = useGame();
   const { smartAccount } = useDelegatorSmartAccount();
+  const [showGameOver, setShowGameOver] = React.useState(false);
 
   // Join game when component mounts
   React.useEffect(() => {
@@ -19,6 +21,25 @@ export default function GameLayout() {
       joinRoom(name, smartAccount.address, "aggressive");
     }
   }, [isConnected, smartAccount]);
+
+  // Show game over dialog when game is complete
+  React.useEffect(() => {
+    if (gameState.isGameOver) {
+      setShowGameOver(true);
+    }
+  }, [gameState.isGameOver]);
+
+  // Handle escape key to dismiss dialog
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowGameOver(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white p-4">
@@ -51,6 +72,12 @@ export default function GameLayout() {
           </div>
         </div>
       </div>
+
+      <GameOverDialog
+        isOpen={showGameOver}
+        players={gameState.players}
+        onClose={() => setShowGameOver(false)}
+      />
     </div>
   );
 }

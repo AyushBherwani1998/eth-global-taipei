@@ -18,6 +18,7 @@ export default function StrategyLayout() {
   const { paymasterClient } = useAccountAbstractionUtils();
   const { pimlicoClient } = useAccountAbstractionUtils();
   const { delegate } = useDelegationUtils();
+  console.log("smartAccount", smartAccount?.address);
 
   let EnsSubDomain = "ayush.dunewars.eth";
   return (
@@ -29,9 +30,9 @@ export default function StrategyLayout() {
         {/* Profile Card */}
         <div className="flex justify-center mb-8">
           <ProfileCard
-            username={EnsSubDomain}
+            username={smartAccount?.address?.slice(0, 5) + "...." + smartAccount?.address?.slice(-5)}
             avatarUrl={`https://api.cloudnouns.com/v1/pfp?background=n&theme=nounsinblack&text=${encodeURIComponent(
-              EnsSubDomain
+              smartAccount?.address ?? ""
             )}&accessory=none`}
           />
         </div>
