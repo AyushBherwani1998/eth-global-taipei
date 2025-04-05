@@ -164,7 +164,7 @@ export const useGame = () => {
     };
   }, [generatePlayerColor]);
 
-  const joinRoom = useCallback((name: string, personality: string) => {
+  const joinRoom = useCallback((name: string, playerId: string, personality: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       // Get strategy and alliance params from localStorage
       const storedStrategy = localStorage.getItem("strategy");
@@ -188,7 +188,7 @@ export const useGame = () => {
         JSON.stringify({
           type: "join",
           roomId: "default",
-          playerId: `player_${Math.random().toString(36).substring(2, 8)}`,
+          playerId,
           name,
           personality,
           strategy,

@@ -6,16 +6,19 @@ import Leaderboard from "@/components/Leaderboard";
 import ActivityFeed from "@/components/ActivityFeed";
 import HeistMap from "@/components/HeistMap";
 import TurnCounter from "@/components/TurnCounter";
+import useDelegatorSmartAccount from "@/hooks/useDelegatorSmartAccout";
 
 export default function GameLayout() {
   const { isConnected, gameState, messageHistory, joinRoom } = useGame();
+  const { smartAccount } = useDelegatorSmartAccount();
 
   // Join game when component mounts
   React.useEffect(() => {
-    if (isConnected) {
-      joinRoom(`Player_${Math.random().toString(36).substring(2, 6)}`, "aggressive");
+    if (isConnected && smartAccount) {
+      const name = smartAccount.address.slice(0, 4) + "..." + smartAccount.address.slice(-4);
+      joinRoom(name, smartAccount.address, "aggressive");
     }
-  }, [isConnected, joinRoom]);
+  }, [isConnected, smartAccount]);
 
   return (
     <div className="min-h-screen bg-black text-white p-4">
