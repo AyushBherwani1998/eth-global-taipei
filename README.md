@@ -84,3 +84,6 @@ NEXT_PUBLIC_MULTIBAAS_API_KEY =
 
 ## Resources
 1. [Slides](https://docs.google.com/presentation/d/1Dv2f6UNr9DvKwoH6O5-gUsmm5LD4_lDUkhEXlEBBRBM/edit?usp=sharing)
+
+## Notes
+1. The too many lines single commmit is because of creating a single repo for frontend and backend. The commit just moves files from root to frontend folder.
