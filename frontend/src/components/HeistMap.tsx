@@ -1,98 +1,103 @@
-import React from "react";
+"use client";
 
-type HexagonProps = {
-  size: number;
-  x: number;
-  y: number;
-  color?: string;
-};
+import React, { useEffect } from "react";
 
-const Hexagon: React.FC<HexagonProps> = ({
-  size,
-  x,
-  y,
-  color = "transparent",
-}) => {
-  // Calculate the points for a regular hexagon
-  const calculateHexPoints = (size: number): string => {
-    const points = [];
-    for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI / 3) * i - Math.PI / 6; // Start from top (rotated)
-      const xPoint = size * Math.cos(angle);
-      const yPoint = size * Math.sin(angle);
-      points.push(`${xPoint},${yPoint}`);
-    }
-    return points.join(" ");
-  };
-
-  return (
-    <g transform={`translate(${x}, ${y})`}>
-      <polygon
-        points={calculateHexPoints(size)}
-        fill={color}
-        stroke="white"
-        strokeWidth="1"
-        className="transition-all duration-300 hover:fill-gray-700 cursor-pointer"
-      />
-    </g>
-  );
+type Hexagon = {
+  q: number;
+  r: number;
+  owner: string | null;
+  resources: number;
 };
 
 type HeistMapProps = {
-  hexSize?: number;
-  backgroundColor?: string;
+  grid: Hexagon[];
+  currentPlayer: string | undefined;
 };
 
-const HeistMap: React.FC<HeistMapProps> = ({ hexSize = 50 }) => {
-  // Configuration for the number of hexagons in each row
-  const rowConfig = [3, 4, 5, 4, 3];
+export default function HeistMap({ grid, currentPlayer }: HeistMapProps) {
+  const hexSize = 50;
+  const hexWidth = Math.sqrt(3) * hexSize;
+  const hexHeight = 2 * hexSize;
 
-  // Calculate hex dimensions
-  const hexWidth = hexSize * Math.sqrt(3);
-  const hexHeight = hexSize * 2;
+  // Debug log to check incoming data
+  useEffect(() => {
+    console.log("HeistMap received update:", { grid, currentPlayer });
+  }, [grid, currentPlayer]);
 
-  // Calculate the total width and height needed for the SVG
-  const totalWidth = (Math.max(...rowConfig) + 0.5) * hexWidth;
-  const totalHeight = (rowConfig.length * 1.5 + 0.5) * hexSize;
+  const getHexPosition = (q: number, r: number) => {
+    const x = q * hexWidth * 0.75;
+    const y = r * hexHeight * 0.5 + q * hexHeight * 0.25;
+    return { x, y };
+  };
 
-  // Function to render hexagons row by row
-  const renderHexagons = () => {
-    const hexagons: React.JSX.Element[] = [];
+  const getPlayerColor = (playerName: string | null) => {
+    if (!playerName) return "gray";
+    
+    // Generate a consistent random color for each player
+    const hash = playerName.split('').reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc);
+    }, 0);
+    
+    // Convert hash to a color
+    const color = `hsl(${hash % 360}, 70%, 50%)`;
+    return color;
+  };
 
-    rowConfig.forEach((hexCount, rowIndex) => {
-      // Calculate offset for centering each row
-      const rowOffset = (totalWidth - hexCount * hexWidth) / 2;
+  const renderHexagon = (hex: Hexagon) => {
+    const { x, y } = getHexPosition(hex.q, hex.r);
+    const points = [
+      [0, -hexSize],
+      [hexWidth / 2, -hexSize / 2],
+      [hexWidth / 2, hexSize / 2],
+      [0, hexSize],
+      [-hexWidth / 2, hexSize / 2],
+      [-hexWidth / 2, -hexSize / 2],
+    ].map(([px, py]) => `${x + px},${y + py}`).join(" ");
 
-      for (let colIndex = 0; colIndex < hexCount; colIndex++) {
-        const xPos = colIndex * hexWidth + rowOffset;
-        // For odd rows, shift horizontally to create the honeycomb pattern
-        const yPos = rowIndex * hexSize * 1.5;
+    const isCurrentPlayer = currentPlayer === hex.owner;
+    const isAdjacent = grid.some(h => 
+      h.owner === currentPlayer && 
+      Math.abs(h.q - hex.q) <= 1 && 
+      Math.abs(h.r - hex.r) <= 1
+    );
 
-        hexagons.push(
-          <Hexagon
-            key={`hex-${rowIndex}-${colIndex}`}
-            size={hexSize}
-            x={xPos + hexWidth / 2}
-            y={yPos + hexSize}
-          />
-        );
-      }
-    });
-
-    return hexagons;
+    return (
+      <g 
+        key={`${hex.q},${hex.r}`}
+      >
+        <polygon
+          points={points}
+          fill={getPlayerColor(hex.owner)}
+          stroke="white"
+          strokeWidth="2"
+          opacity={isCurrentPlayer || isAdjacent ? 1 : 0.7}
+        />
+        {hex.resources > 0 && (
+          <text
+            x={x}
+            y={y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="white"
+            fontSize="12"
+          >
+            {hex.resources}
+          </text>
+        )}
+      </g>
+    );
   };
 
   return (
-    <div className="flex justify-center items-center w-full">
+    <div className="relative w-full h-[600px] border border-zinc-800 rounded-lg overflow-hidden">
       <svg
-        width={totalWidth}
-        height={totalHeight}
-        viewBox={`0 0 ${totalWidth} ${totalHeight}`}
+        width="100%"
+        height="100%"
+        viewBox="-200 -200 400 400"
+        preserveAspectRatio="xMidYMid meet"
       >
-        {renderHexagons()}
+        {grid.map(renderHexagon)}
       </svg>
     </div>
   );
-};
-
-export default HeistMap;
+}
