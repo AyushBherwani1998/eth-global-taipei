@@ -64,11 +64,11 @@ function generateHexGrid(size: number): Hexagon[] {
   for (let q = -size; q <= size; q++) {
     for (let r = -size; r <= size; r++) {
       if (Math.abs(q + r) <= size) {
-        grid.push({ 
-          q, 
-          r, 
+        grid.push({
+          q,
+          r,
           owner: null,
-          resources: Math.floor(Math.random() * 3) // Random resources between 0-2
+          resources: Math.floor(Math.random() * 3), // Random resources between 0-2
         });
       }
     }
@@ -85,12 +85,10 @@ function getHexNeighbors(hex: Hexagon): { q: number; r: number }[] {
     { q: hex.q - 1, r: hex.r + 1 },
     { q: hex.q, r: hex.r + 1 },
   ];
-  
+
   // Filter out neighbors that would be outside the map bounds
-  return neighbors.filter(n => 
-    Math.abs(n.q) <= 3 && 
-    Math.abs(n.r) <= 3 && 
-    Math.abs(n.q + n.r) <= 3
+  return neighbors.filter(
+    (n) => Math.abs(n.q) <= 3 && Math.abs(n.r) <= 3 && Math.abs(n.q + n.r) <= 3
   );
 }
 
@@ -145,13 +143,13 @@ wss.on("connection", (ws) => {
       // Set starting positions for players
       const startPositions = [
         { q: -2, r: 0 }, // Player 1 starts at top-left
-        { q: 2, r: 0 },  // Player 2 starts at top-right
+        { q: 2, r: 0 }, // Player 2 starts at top-right
         { q: 0, r: -2 }, // Player 3 starts at bottom-left
-        { q: 0, r: 2 },  // Player 4 starts at bottom-right
+        { q: 0, r: 2 }, // Player 4 starts at bottom-right
       ];
 
       const pos = startPositions[room.players.length - 1];
-      const hex = room.grid.find(h => h.q === pos.q && h.r === pos.r);
+      const hex = room.grid.find((h) => h.q === pos.q && h.r === pos.r);
       if (hex) {
         hex.owner = msg.playerId;
         player.territories++;
@@ -161,9 +159,12 @@ wss.on("connection", (ws) => {
       // Broadcast current state and waiting message
       const playersNeeded = 4 - room.players.length;
       broadcast(room, {
-        message: playersNeeded > 0
-          ? `Waiting for ${playersNeeded} more player${playersNeeded > 1 ? "s" : ""}...`
-          : "All players joined! Starting game...",
+        message:
+          playersNeeded > 0
+            ? `Waiting for ${playersNeeded} more player${
+                playersNeeded > 1 ? "s" : ""
+              }...`
+            : "All players joined! Starting game...",
       });
 
       // Start game only when 4 players have joined
@@ -171,34 +172,46 @@ wss.on("connection", (ws) => {
         room.started = true;
         console.log(`\n=== GAME STARTING WITH 4 PLAYERS ===`);
         room.players.forEach((p, index) => {
-          console.log(`${p.name} (${p.personality}) starting at position (${startPositions[index].q},${startPositions[index].r})`);
+          console.log(
+            `${p.name} (${p.personality}) starting at position (${startPositions[index].q},${startPositions[index].r})`
+          );
         });
         await new Promise((res) => setTimeout(res, 1000));
         runGameLoop(room);
       }
     } else if (msg.type === "alliance") {
-      const room = Object.values(rooms).find(r => 
-        r.players.some(p => p.id === msg.playerId)
+      const room = Object.values(rooms).find((r) =>
+        r.players.some((p) => p.id === msg.playerId)
       );
-      
+
       if (!room) return;
 
-      const currentPlayer = room.players.find(p => p.id === msg.playerId);
-      const targetPlayer = room.players.find(p => p.id === msg.targetPlayerId);
+      const currentPlayer = room.players.find((p) => p.id === msg.playerId);
+      const targetPlayer = room.players.find(
+        (p) => p.id === msg.targetPlayerId
+      );
 
       if (!currentPlayer || !targetPlayer) return;
 
       // Check if either player has alliance params disabled
-      if (!currentPlayer.allianceParams?.enabled || !targetPlayer.allianceParams?.enabled) {
-        ws.send(JSON.stringify({ 
-          type: "error", 
-          message: "Alliances are not enabled for one or both players" 
-        }));
+      if (
+        !currentPlayer.allianceParams?.enabled ||
+        !targetPlayer.allianceParams?.enabled
+      ) {
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            message: "Alliances are not enabled for one or both players",
+          })
+        );
         return;
       }
 
       // Check if alliance can be automatically formed based on proposer's giveMax and target's getMin
-      if (currentPlayer.allianceParams.giveMax >= targetPlayer.allianceParams.getMin) {
+      if (
+        currentPlayer.allianceParams.giveMax >=
+        targetPlayer.allianceParams.getMin
+      ) {
         // Add players to each other's allies list
         if (!currentPlayer.allies.includes(targetPlayer.id)) {
           currentPlayer.allies.push(targetPlayer.id);
@@ -209,164 +222,183 @@ wss.on("connection", (ws) => {
         const enemyIndex = currentPlayer.enemies.indexOf(targetPlayer.id);
         if (enemyIndex !== -1) {
           currentPlayer.enemies.splice(enemyIndex, 1);
-          targetPlayer.enemies.splice(targetPlayer.enemies.indexOf(currentPlayer.id), 1);
+          targetPlayer.enemies.splice(
+            targetPlayer.enemies.indexOf(currentPlayer.id),
+            1
+          );
         }
 
-        broadcast(room, { 
-          message: `${currentPlayer.name} and ${targetPlayer.name} formed an alliance` 
+        broadcast(room, {
+          message: `${currentPlayer.name} and ${targetPlayer.name} formed an alliance`,
         });
       } else {
-        broadcast(room, { 
-          message: `${currentPlayer.name} and ${targetPlayer.name} could not form an alliance - terms not acceptable` 
+        broadcast(room, {
+          message: `${currentPlayer.name} and ${targetPlayer.name} could not form an alliance - terms not acceptable`,
         });
       }
     } else if (msg.type === "action") {
-      const room = Object.values(rooms).find(r => 
-        r.players.some(p => p.id === msg.playerId)
+      const room = Object.values(rooms).find((r) =>
+        r.players.some((p) => p.id === msg.playerId)
       );
-      
+
       if (!room) return;
 
       const currentPlayer = room.players[room.turn % room.players.length];
       if (currentPlayer.id !== msg.playerId) {
-        ws.send(JSON.stringify({ 
-          type: "error", 
-          message: "Not your turn" 
-        }));
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            message: "Not your turn",
+          })
+        );
         return;
       }
 
-      const hex = room.grid.find(h => 
-        h.q === msg.hex.q && h.r === msg.hex.r
-      );
+      const hex = room.grid.find((h) => h.q === msg.hex.q && h.r === msg.hex.r);
 
       if (!hex) return;
 
       if (msg.action === "expand") {
         if (hex.owner) {
-          ws.send(JSON.stringify({ 
-            type: "error", 
-            message: "Cannot expand to occupied territory" 
-          }));
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Cannot expand to occupied territory",
+            })
+          );
           return;
         }
 
-        const playerHexes = room.grid.filter(h => h.owner === msg.playerId);
-        const isAdjacent = playerHexes.some(h => 
-          Math.abs(h.q - hex.q) <= 1 && Math.abs(h.r - hex.r) <= 1
+        const playerHexes = room.grid.filter((h) => h.owner === msg.playerId);
+        const isAdjacent = playerHexes.some(
+          (h) => Math.abs(h.q - hex.q) <= 1 && Math.abs(h.r - hex.r) <= 1
         );
 
         if (!isAdjacent) {
-          ws.send(JSON.stringify({ 
-            type: "error", 
-            message: "Can only expand to adjacent territories" 
-          }));
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Can only expand to adjacent territories",
+            })
+          );
           return;
         }
 
         hex.owner = msg.playerId;
         currentPlayer.territories++;
         currentPlayer.resources += hex.resources;
-        broadcast(room, { message: `${currentPlayer.name} expanded their territory` });
+        broadcast(room, {
+          message: `${currentPlayer.name} expanded their territory`,
+        });
       } else if (msg.action === "attack") {
         if (!hex.owner || hex.owner === msg.playerId) {
-          ws.send(JSON.stringify({ 
-            type: "error", 
-            message: "Cannot attack this territory" 
-          }));
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Cannot attack this territory",
+            })
+          );
           return;
         }
 
-        const playerHexes = room.grid.filter(h => h.owner === msg.playerId);
-        const isAdjacent = playerHexes.some(h => 
-          Math.abs(h.q - hex.q) <= 1 && Math.abs(h.r - hex.r) <= 1
+        const playerHexes = room.grid.filter((h) => h.owner === msg.playerId);
+        const isAdjacent = playerHexes.some(
+          (h) => Math.abs(h.q - hex.q) <= 1 && Math.abs(h.r - hex.r) <= 1
         );
 
         if (!isAdjacent) {
-          ws.send(JSON.stringify({ 
-            type: "error", 
-            message: "Can only attack adjacent territories" 
-          }));
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Can only attack adjacent territories",
+            })
+          );
           return;
         }
 
         // 50% chance of success
         if (Math.random() > 0.5) {
-          const enemy = room.players.find(p => p.id === hex.owner);
+          const enemy = room.players.find((p) => p.id === hex.owner);
           if (enemy) {
             // Remove territory from enemy's list
             enemy.territories--;
             enemy.resources -= hex.resources;
-            
+
             // Add territory to attacker's list
             hex.owner = msg.playerId;
             currentPlayer.territories++;
             currentPlayer.resources += hex.resources;
-            
+
             // Update relationships
             if (!currentPlayer.enemies.includes(enemy.id)) {
               currentPlayer.enemies.push(enemy.id);
               enemy.enemies.push(currentPlayer.id);
             }
-            
+
             // Break any existing alliance
             const allyIndex = currentPlayer.allies.indexOf(enemy.id);
             if (allyIndex !== -1) {
               currentPlayer.allies.splice(allyIndex, 1);
               enemy.allies.splice(enemy.allies.indexOf(currentPlayer.id), 1);
             }
-            
+
             // Update memory
-            currentPlayer.memory.push(`Successfully attacked and captured (${hex.q}, ${hex.r}) from ${enemy.name}`);
-            enemy.memory.push(`Lost territory at (${hex.q}, ${hex.r}) to ${currentPlayer.name}`);
-            
+            currentPlayer.memory.push(
+              `Successfully attacked and captured (${hex.q}, ${hex.r}) from ${enemy.name}`
+            );
+            enemy.memory.push(
+              `Lost territory at (${hex.q}, ${hex.r}) to ${currentPlayer.name}`
+            );
+
             // Broadcast the territory change
             broadcast(room, {
               message: `${currentPlayer.name} captured territory from ${enemy.name} at (${hex.q}, ${hex.r})`,
               type: "update",
               grid: room.grid,
-              players: room.players.map(p => ({
+              players: room.players.map((p) => ({
                 id: p.id,
                 name: p.name,
                 territories: p.territories,
                 resources: p.resources,
                 allies: p.allies,
-                enemies: p.enemies
-              }))
+                enemies: p.enemies,
+              })),
             });
           }
         } else {
           currentPlayer.memory.push(`Failed to attack (${hex.q}, ${hex.r})`);
-          broadcast(room, { 
+          broadcast(room, {
             message: `${currentPlayer.name}'s attack failed`,
             type: "update",
             grid: room.grid,
-            players: room.players.map(p => ({
+            players: room.players.map((p) => ({
               id: p.id,
               name: p.name,
               territories: p.territories,
               resources: p.resources,
               allies: p.allies,
-              enemies: p.enemies
-            }))
+              enemies: p.enemies,
+            })),
           });
         }
       }
 
       // Move to next player's turn
       room.turn++;
-      broadcast(room, { 
-        message: `It's now ${room.players[room.turn % room.players.length].name}'s turn`,
+      broadcast(room, {
+        message: `It's now ${
+          room.players[room.turn % room.players.length].name
+        }'s turn`,
         type: "update",
         grid: room.grid,
-        players: room.players.map(p => ({
+        players: room.players.map((p) => ({
           id: p.id,
           name: p.name,
           territories: p.territories,
           resources: p.resources,
           allies: p.allies,
-          enemies: p.enemies
-        }))
+          enemies: p.enemies,
+        })),
       });
     }
   });
@@ -390,7 +422,7 @@ wss.on("connection", (ws) => {
             { q: 0, r: 2 },
           ];
           const pos = startPositions[playerIndex];
-          const hex = room.grid.find(h => h.q === pos.q && h.r === pos.r);
+          const hex = room.grid.find((h) => h.q === pos.q && h.r === pos.r);
           if (hex) {
             hex.owner = null;
             player.territories--;
@@ -402,12 +434,12 @@ wss.on("connection", (ws) => {
           broadcast(room, {
             type: "update",
             grid: room.grid,
-            players: room.players.map(p => ({
+            players: room.players.map((p) => ({
               id: p.id,
               name: p.name,
               personality: p.personality,
               territories: p.territories,
-              resources: p.resources 
+              resources: p.resources,
             })),
             turn: room.turn,
             message: `${player.name} left. Waiting for ${
@@ -430,19 +462,19 @@ wss.on("connection", (ws) => {
 function printMap(room: GameRoom) {
   console.log("\nCurrent Map:");
   room.grid.forEach((hex) => {
-    console.log(`(${hex.q}, ${hex.r}): ${hex.owner || '.'}`);
+    console.log(`(${hex.q}, ${hex.r}): ${hex.owner || "."}`);
   });
 }
 
 function broadcast(room: GameRoom, data: any) {
   // Create a visual representation of the map
-  const mapView = room.grid.map((hex) => hex.owner || '.').join(" ");
+  const mapView = room.grid.map((hex) => hex.owner || ".").join(" ");
 
   // Add map visualization to the broadcast data
   const enrichedData = {
     type: "update",
     grid: room.grid,
-    players: room.players.map(p => ({
+    players: room.players.map((p) => ({
       id: p.id,
       name: p.name,
       personality: p.personality,
@@ -451,7 +483,7 @@ function broadcast(room: GameRoom, data: any) {
       allies: p.allies,
       enemies: p.enemies,
       strategy: p.strategy,
-      allianceParams: p.allianceParams
+      allianceParams: p.allianceParams,
     })),
     turn: room.turn,
     message: data.message || "",
@@ -496,37 +528,44 @@ async function runGameLoop(room: GameRoom) {
 
       const gameState = createStateDescription(room, player);
       const prompt = buildPrompt(gameState, player);
-
+      console.log(player.strategy);
       try {
         const res = await openai.chat.completions.create({
           model: "gpt-3.5-turbo",
           messages: [
             {
               role: "system",
-              content: `You are an AI controlling the faction '${player.name}' with a '${player.personality}' personality. Make strategic choices.`,
+              content: `You are an AI controlling the faction '${player.name}' with the Strategy Profile:
+              - Opportunistic: ${player.strategy.opportunistic}% (Higher values favor expansion and resource gathering)
+              - Aggressive: ${player.strategy.aggressive}% (Higher values favor attacking and conquest)
+              - Diplomatic: ${player.strategy.diplomatic}% (Higher values favor alliances and cooperation)
+              - Defensive: ${player.strategy.defensive}% (Higher values favor territory protection)
+
+              Make strategic choices.`,
             },
             { role: "user", content: prompt },
           ],
           temperature: 0.7,
         });
 
-        const decision = res.choices[0].message?.content?.trim().toLowerCase() || "hold";
+        const decision =
+          res.choices[0].message?.content?.trim().toLowerCase() || "hold";
         console.log(`[${player.name}] Decision:`, decision);
 
         processDecision(room, player, decision);
-        
+
         // Broadcast state after each player's turn
-        broadcast(room, { 
+        broadcast(room, {
           message: `${player.name} made their move: ${decision}`,
-          type: "update"
+          type: "update",
         });
-        
+
         await new Promise((res) => setTimeout(res, 2000));
       } catch (error) {
         console.error(`Error processing turn for ${player.name}:`, error);
-        broadcast(room, { 
+        broadcast(room, {
           message: `Error processing ${player.name}'s turn`,
-          type: "error"
+          type: "error",
         });
       }
     }
@@ -549,26 +588,33 @@ async function runGameLoop(room: GameRoom) {
     console.log(`   Enemies: ${standing.enemies.join(", ") || "None"}`);
   });
 
-  console.log(`\n🏆 Winner: ${finalResults.winner.name} (${finalResults.winner.personality})`);
-  console.log(`Controlled ${finalResults.winner.controlPercentage}% of the map`);
+  console.log(
+    `\n🏆 Winner: ${finalResults.winner.name} (${finalResults.winner.personality})`
+  );
+  console.log(
+    `Controlled ${finalResults.winner.controlPercentage}% of the map`
+  );
 
   // Broadcast final results to all players
   broadcast(room, {
     type: "end",
     grid: room.grid,
     finalResults: finalResults,
-    message: `🏆 Game Over! Winner: ${finalResults.winner.name} (${finalResults.winner.personality}) with ${finalResults.winner.controlPercentage}% control`
+    message: `🏆 Game Over! Winner: ${finalResults.winner.name} (${finalResults.winner.personality}) with ${finalResults.winner.controlPercentage}% control`,
   });
 
   // Clean up the room
   console.log(`\nCleaning up room ${room.id}...`);
-  
+
   // Close all WebSocket connections
-  room.players.forEach(player => {
+  room.players.forEach((player) => {
     try {
       player.ws.close();
     } catch (error) {
-      console.error(`Error closing connection for player ${player.name}:`, error);
+      console.error(
+        `Error closing connection for player ${player.name}:`,
+        error
+      );
     }
   });
 
@@ -579,17 +625,47 @@ async function runGameLoop(room: GameRoom) {
 
 function calculateFinalResults(room: GameRoom) {
   const totalHexes = room.grid.length;
-  const standings = room.players.map(player => ({
-    name: player.name,
-    personality: player.personality,
-    territories: player.territories,
-    resources: player.resources,
-    controlPercentage: Math.round((player.territories / totalHexes) * 100),
-    allies: player.allies,
-    enemies: player.enemies,
-  }));
 
-  standings.sort((a, b) => b.territories - a.territories);
+  // Calculate alliance territories
+  const allianceTerritories = new Map<string, number>();
+  room.players.forEach((player) => {
+    const allianceKey =
+      player.allies.length > 0
+        ? [...player.allies, player.id].sort().join("-")
+        : player.id;
+
+    const currentTerritories = allianceTerritories.get(allianceKey) || 0;
+    allianceTerritories.set(
+      allianceKey,
+      currentTerritories + player.territories
+    );
+  });
+
+  const standings = room.players.map((player) => {
+    const allianceKey =
+      player.allies.length > 0
+        ? [...player.allies, player.id].sort().join("-")
+        : player.id;
+
+    const allianceTotalTerritories =
+      allianceTerritories.get(allianceKey) || player.territories;
+    const controlPercentage = Math.round(
+      (allianceTotalTerritories / totalHexes) * 100
+    );
+
+    return {
+      name: player.name,
+      personality: player.personality,
+      territories: player.territories,
+      allianceTerritories: allianceTotalTerritories,
+      resources: player.resources,
+      controlPercentage,
+      allies: player.allies,
+      enemies: player.enemies,
+    };
+  });
+
+  standings.sort((a, b) => b.allianceTerritories - a.allianceTerritories);
   const winner = standings[0];
 
   return { standings, winner };
@@ -617,21 +693,31 @@ ${
 }
 
 Current Grid State:
-${room.grid.map((hex) => hex.owner || '.').join(" ")}
+${room.grid.map((hex) => hex.owner || ".").join(" ")}
 `;
 }
 
 function buildPrompt(stateDesc: string, player: Player): string {
-  return `You are controlling the faction '${player.name}' with the following characteristics:
+  return `You are controlling the faction '${
+    player.name
+  }' with the following characteristics:
 
 Strategy Profile:
-- Opportunistic: ${player.strategy.opportunistic}%
-- Aggressive: ${player.strategy.aggressive}%
-- Diplomatic: ${player.strategy.diplomatic}%
-- Defensive: ${player.strategy.defensive}%
+- Opportunistic: ${
+    player.strategy.opportunistic
+  }% (Higher values favor expansion and resource gathering)
+- Aggressive: ${
+    player.strategy.aggressive
+  }% (Higher values favor attacking and conquest)
+- Diplomatic: ${
+    player.strategy.diplomatic
+  }% (Higher values favor alliances and cooperation)
+- Defensive: ${
+    player.strategy.defensive
+  }% (Higher values favor territory protection)
 
 Alliance Parameters:
-- Alliance Enabled: ${player.allianceParams?.enabled ? 'Yes' : 'No'}
+- Alliance Enabled: ${player.allianceParams?.enabled ? "Yes" : "No"}
 - Maximum Resources to Give: ${player.allianceParams?.giveMax || 0}
 - Minimum Resources to Receive: ${player.allianceParams?.getMin || 0}
 
@@ -640,15 +726,42 @@ ${stateDesc}
 
 Strategic Guidelines:
 1. Your strategy profile influences your decision-making:
-   - Higher opportunistic values favor expansion and resource gathering
-   - Higher aggressive values favor attacking and conquest
-   - Higher diplomatic values favor alliances and cooperation
-   - Higher defensive values favor territory protection and resource conservation
+   - With ${
+     player.strategy.opportunistic
+   }% opportunistic strategy, you should focus on:
+     * Expanding to unclaimed territories
+     * Gathering resources
+     * Taking advantage of opportunities
+     * Forming alliances
+   
+   - With ${
+     player.strategy.aggressive
+   }% aggressive strategy, you should focus on:
+     * Attacking enemy territories
+     * Weakening opponents
+     * Taking calculated risks
+   
+   - With ${
+     player.strategy.diplomatic
+   }% diplomatic strategy, you should focus on:
+     * Forming alliances
+     * Trading resources
+     * Maintaining good relations
+   
+   - With ${player.strategy.defensive}% defensive strategy, you should focus on:
+     * Protecting your territories
+     * Building strong borders
+     * Being cautious in expansion
+     * Forming alliances
 
 2. Alliance Formation:
    - Alliances are automatically formed when both parties' terms are met
-   - Your giveMax must be >= other player's getMin
-   - Your getMin must be <= other player's giveMax
+   - Your giveMax (${
+     player.allianceParams?.giveMax || 0
+   }) must be >= other player's getMin
+   - Your getMin (${
+     player.allianceParams?.getMin || 0
+   }) must be <= other player's giveMax
    - Consider your alliance parameters when proposing alliances
 
 3. Territory Control:
@@ -672,6 +785,8 @@ Your decision should reflect your strategy profile and alliance parameters. Cons
 - Your current resources and territory
 - Available expansion opportunities
 - Potential alliance partners
+- Your strategic priorities based on your profile
+- Alliance forming to win the game
 - Enemy positions and strength
 - Your strategic priorities based on your profile
 
@@ -681,35 +796,39 @@ Make your decision:`;
 function processDecision(room: GameRoom, player: Player, decision: string) {
   // Update enemy relationships before processing decision
   scanNeighbors(room, player);
-  
-  const playerHexes = room.grid.filter(h => h.owner === player.id);
+
+  const playerHexes = room.grid.filter((h) => h.owner === player.id);
   console.log(`[${player.name}] Processing decision: ${decision}`);
-  
+
   if (decision.includes("expand")) {
     // Find a neutral hex adjacent to player's territory
     for (const hex of playerHexes) {
       const neighbors = getHexNeighbors(hex);
       for (const neighbor of neighbors) {
-        const targetHex = room.grid.find(h => h.q === neighbor.q && h.r === neighbor.r);
+        const targetHex = room.grid.find(
+          (h) => h.q === neighbor.q && h.r === neighbor.r
+        );
         if (targetHex && !targetHex.owner) {
           targetHex.owner = player.id;
           player.territories++;
           player.resources += targetHex.resources;
           player.memory.push(`Expanded to (${targetHex.q}, ${targetHex.r})`);
-          console.log(`${player.name} expands into (${targetHex.q}, ${targetHex.r})`);
-          
+          console.log(
+            `${player.name} expands into (${targetHex.q}, ${targetHex.r})`
+          );
+
           broadcast(room, {
             type: "update",
             grid: room.grid,
-            players: room.players.map(p => ({
+            players: room.players.map((p) => ({
               id: p.id,
               name: p.name,
               territories: p.territories,
               resources: p.resources,
               allies: p.allies,
-              enemies: p.enemies
+              enemies: p.enemies,
             })),
-            message: `${player.name} expanded their territory`
+            message: `${player.name} expanded their territory`,
           });
           return;
         }
@@ -722,61 +841,77 @@ function processDecision(room: GameRoom, player: Player, decision: string) {
     for (const hex of playerHexes) {
       const neighbors = getHexNeighbors(hex);
       for (const neighbor of neighbors) {
-        const targetHex = room.grid.find(h => h.q === neighbor.q && h.r === neighbor.r);
+        const targetHex = room.grid.find(
+          (h) => h.q === neighbor.q && h.r === neighbor.r
+        );
         if (targetHex && targetHex.owner && targetHex.owner !== player.id) {
-          console.log(`[${player.name}] Found target hex at (${targetHex.q}, ${targetHex.r}) owned by ${targetHex.owner}`);
-          
+          console.log(
+            `[${player.name}] Found target hex at (${targetHex.q}, ${targetHex.r}) owned by ${targetHex.owner}`
+          );
+
           // Check if target is an ally
-          const targetPlayer = room.players.find(p => p.id === targetHex.owner);
+          const targetPlayer = room.players.find(
+            (p) => p.id === targetHex.owner
+          );
           if (targetPlayer && player.allies.includes(targetPlayer.id)) {
-            console.log(`[${player.name}] Cannot attack ally ${targetPlayer.name}`);
-            player.memory.push(`Cannot attack ally ${targetPlayer.name}'s territory`);
+            console.log(
+              `[${player.name}] Cannot attack ally ${targetPlayer.name}`
+            );
+            player.memory.push(
+              `Cannot attack ally ${targetPlayer.name}'s territory`
+            );
             return;
           }
 
-          const enemy = room.players.find(p => p.id === targetHex.owner);
+          const enemy = room.players.find((p) => p.id === targetHex.owner);
           if (enemy) {
-            console.log(`[${player.name}] Attack successful against ${enemy.name}`);
-            
+            console.log(
+              `[${player.name}] Attack successful against ${enemy.name}`
+            );
+
             // Remove territory from enemy's list
             enemy.territories--;
             enemy.resources -= targetHex.resources;
-            
+
             // Add territory to attacker's list
             targetHex.owner = player.id;
             player.territories++;
             player.resources += targetHex.resources;
-            
+
             // Update relationships
             if (!player.enemies.includes(enemy.id)) {
               player.enemies.push(enemy.id);
               enemy.enemies.push(player.id);
             }
-            
+
             // Break any existing alliance
             const allyIndex = player.allies.indexOf(enemy.id);
             if (allyIndex !== -1) {
               player.allies.splice(allyIndex, 1);
               enemy.allies.splice(enemy.allies.indexOf(player.id), 1);
             }
-            
+
             // Update memory
-            player.memory.push(`Successfully attacked and captured (${targetHex.q}, ${targetHex.r}) from ${enemy.name}`);
-            enemy.memory.push(`Lost territory at (${targetHex.q}, ${targetHex.r}) to ${player.name}`);
-            
+            player.memory.push(
+              `Successfully attacked and captured (${targetHex.q}, ${targetHex.r}) from ${enemy.name}`
+            );
+            enemy.memory.push(
+              `Lost territory at (${targetHex.q}, ${targetHex.r}) to ${player.name}`
+            );
+
             // Broadcast the territory change
             broadcast(room, {
               message: `${player.name} captured territory from ${enemy.name} at (${targetHex.q}, ${targetHex.r})`,
               type: "update",
               grid: room.grid,
-              players: room.players.map(p => ({
+              players: room.players.map((p) => ({
                 id: p.id,
                 name: p.name,
                 territories: p.territories,
                 resources: p.resources,
                 allies: p.allies,
-                enemies: p.enemies
-              }))
+                enemies: p.enemies,
+              })),
             });
             return;
           }
@@ -787,24 +922,79 @@ function processDecision(room: GameRoom, player: Player, decision: string) {
     player.memory.push("Failed to attack - no valid adjacent targets");
   } else if (decision.includes("ally")) {
     // Find a player to ally with
-    const targetCoords = decision.match(/\d+,\d+/);
-    if (targetCoords) {
-      const [q, r] = targetCoords[0].split(',').map(Number);
-      const targetHex = room.grid.find(h => h.q === q && h.r === r);
-      if (targetHex && targetHex.owner && targetHex.owner !== player.id) {
-        const potentialAlly = room.players.find(p => p.id === targetHex.owner);
-        if (potentialAlly && !player.enemies.includes(potentialAlly.id)) {
-          // Check if either player already has an ally
-          if (player.allies.length === 0 && potentialAlly.allies.length === 0) {
+    const targetName = decision.match(/ally with (\w+)/i)?.[1];
+    if (targetName) {
+      const potentialAlly = room.players.find(
+        (p) =>
+          p.name.toLowerCase() === targetName.toLowerCase() &&
+          p.id !== player.id
+      );
+
+      if (potentialAlly) {
+        // Check if either player already has an ally
+        if (player.allies.length > 0) {
+          player.memory.push(`Cannot form alliance - you already have an ally`);
+          return;
+        }
+        if (potentialAlly.allies.length > 0) {
+          player.memory.push(
+            `Cannot form alliance - ${potentialAlly.name} already has an ally`
+          );
+          return;
+        }
+
+        // Check if alliance is possible based on parameters
+        if (
+          player.allianceParams?.enabled &&
+          potentialAlly.allianceParams?.enabled
+        ) {
+          if (
+            player.allianceParams.giveMax >=
+              potentialAlly.allianceParams.getMin &&
+            potentialAlly.allianceParams.giveMax >= player.allianceParams.getMin
+          ) {
+            // Add players to each other's allies list
             player.allies.push(potentialAlly.id);
             potentialAlly.allies.push(player.id);
+
+            // Remove from enemies list if they were enemies
+            const enemyIndex = player.enemies.indexOf(potentialAlly.id);
+            if (enemyIndex !== -1) {
+              player.enemies.splice(enemyIndex, 1);
+              potentialAlly.enemies.splice(
+                potentialAlly.enemies.indexOf(player.id),
+                1
+              );
+            }
+
             player.memory.push(`Formed alliance with ${potentialAlly.name}`);
             potentialAlly.memory.push(`Formed alliance with ${player.name}`);
+
+            broadcast(room, {
+              message: `${player.name} and ${potentialAlly.name} formed an alliance`,
+              type: "update",
+              grid: room.grid,
+              players: room.players.map((p) => ({
+                id: p.id,
+                name: p.name,
+                territories: p.territories,
+                resources: p.resources,
+                allies: p.allies,
+                enemies: p.enemies,
+              })),
+            });
             return;
           } else {
-            player.memory.push(`Cannot form alliance - one faction already has an alliance`);
+            player.memory.push(
+              `Could not form alliance with ${potentialAlly.name} - terms not acceptable`
+            );
             return;
           }
+        } else {
+          player.memory.push(
+            `Could not form alliance - alliances are disabled for one or both players`
+          );
+          return;
         }
       }
     }
@@ -813,15 +1003,18 @@ function processDecision(room: GameRoom, player: Player, decision: string) {
     // Find a player to make peace with
     const targetCoords = decision.match(/\d+,\d+/);
     if (targetCoords) {
-      const [q, r] = targetCoords[0].split(',').map(Number);
-      const targetHex = room.grid.find(h => h.q === q && h.r === r);
+      const [q, r] = targetCoords[0].split(",").map(Number);
+      const targetHex = room.grid.find((h) => h.q === q && h.r === r);
       if (targetHex && targetHex.owner && targetHex.owner !== player.id) {
-        const targetPlayer = room.players.find(p => p.id === targetHex.owner);
+        const targetPlayer = room.players.find((p) => p.id === targetHex.owner);
         if (targetPlayer) {
           const enemyIndex = player.enemies.indexOf(targetPlayer.id);
           if (enemyIndex !== -1) {
             player.enemies.splice(enemyIndex, 1);
-            targetPlayer.enemies.splice(targetPlayer.enemies.indexOf(player.id), 1);
+            targetPlayer.enemies.splice(
+              targetPlayer.enemies.indexOf(player.id),
+              1
+            );
             player.memory.push(`Made peace with ${targetPlayer.name}`);
             targetPlayer.memory.push(`Made peace with ${player.name}`);
             return;
@@ -834,10 +1027,10 @@ function processDecision(room: GameRoom, player: Player, decision: string) {
     // Find a player to trade with
     const targetCoords = decision.match(/\d+,\d+/);
     if (targetCoords) {
-      const [q, r] = targetCoords[0].split(',').map(Number);
-      const targetHex = room.grid.find(h => h.q === q && h.r === r);
+      const [q, r] = targetCoords[0].split(",").map(Number);
+      const targetHex = room.grid.find((h) => h.q === q && h.r === r);
       if (targetHex && targetHex.owner && targetHex.owner !== player.id) {
-        const targetPlayer = room.players.find(p => p.id === targetHex.owner);
+        const targetPlayer = room.players.find((p) => p.id === targetHex.owner);
         if (targetPlayer) {
           player.memory.push(`Traded with ${targetPlayer.name}`);
           targetPlayer.memory.push(`Traded with ${player.name}`);
@@ -853,7 +1046,7 @@ function processDecision(room: GameRoom, player: Player, decision: string) {
 }
 
 function countTerritories(room: GameRoom, player: Player): number {
-  return room.grid.filter(h => h.owner === player.name).length;
+  return room.grid.filter((h) => h.owner === player.name).length;
 }
 
 function scanNeighbors(
@@ -867,18 +1060,22 @@ function scanNeighbors(
   const enemy = new Set<string>();
 
   // Get all hexes owned by the player
-  const playerHexes = room.grid.filter(h => h.owner === player.id);
+  const playerHexes = room.grid.filter((h) => h.owner === player.id);
 
   for (const hex of playerHexes) {
     // Get only adjacent hexes
     const neighbors = getHexNeighbors(hex);
     for (const neighbor of neighbors) {
-      const targetHex = room.grid.find(h => h.q === neighbor.q && h.r === neighbor.r);
+      const targetHex = room.grid.find(
+        (h) => h.q === neighbor.q && h.r === neighbor.r
+      );
       if (targetHex) {
         if (!targetHex.owner) {
           neutral.add(`(${neighbor.q}, ${neighbor.r})`);
         } else if (targetHex.owner !== player.id) {
-          const adjacentPlayer = room.players.find(p => p.id === targetHex.owner);
+          const adjacentPlayer = room.players.find(
+            (p) => p.id === targetHex.owner
+          );
           if (adjacentPlayer && !player.allies.includes(adjacentPlayer.id)) {
             enemy.add(`(${neighbor.q}, ${neighbor.r})`);
           }

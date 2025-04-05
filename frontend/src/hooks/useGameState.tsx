@@ -9,10 +9,25 @@ export interface Hexagon {
   resources: number;
 }
 
+export interface Strategy {
+  opportunistic: number;
+  aggressive: number;
+  diplomatic: number;
+  defensive: number;
+}
+
+export interface AllianceParams {
+  giveMax: number;
+  getMin: number;
+  enabled: boolean;
+}
+
 export interface Player {
   id: string;
   name: string;
   personality: string;
+  strategy: Strategy;
+  allianceParams: AllianceParams | null;
   territories: number;
   resources: number;
   color: string;
@@ -54,7 +69,11 @@ export const useGame = () => {
       "#9B59B6", // Purple
       "#E67E22", // Orange
     ];
-    return colors[Math.abs(playerId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length];
+    return colors[
+      Math.abs(
+        playerId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      ) % colors.length
+    ];
   }, []);
 
   useEffect(() => {
@@ -84,6 +103,13 @@ export const useGame = () => {
               id: player.id,
               name: player.name,
               personality: player.personality,
+              strategy: player.strategy || {
+                opportunistic: 25,
+                aggressive: 25,
+                diplomatic: 25,
+                defensive: 25,
+              },
+              allianceParams: player.allianceParams || null,
               territories: Number(player.territories) || 0,
               resources: Number(player.resources) || 0,
               color: generatePlayerColor(player.id),
@@ -107,6 +133,11 @@ export const useGame = () => {
           console.error("Server error:", data.message);
           setMessageHistory((prev) => [...prev, `Error: ${data.message}`]);
           setError(data.message);
+        } else if (data.type === "alliance_proposal") {
+          setMessageHistory((prev) => [
+            ...prev,
+            `Alliance proposal from ${data.from}: Give ${data.giveAmount}, Get ${data.getAmount}`,
+          ]);
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
@@ -135,6 +166,24 @@ export const useGame = () => {
 
   const joinRoom = useCallback((name: string, personality: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      // Get strategy and alliance params from localStorage
+      const storedStrategy = localStorage.getItem("strategy");
+      const storedAllianceParams = localStorage.getItem("allianceParams");
+      console.log("storedStrategy", storedStrategy);
+      console.log("storedAllianceParams", storedAllianceParams);
+      const strategy = storedStrategy
+        ? JSON.parse(storedStrategy)
+        : {
+            opportunistic: Math.floor(Math.random() * 25),
+            aggressive: Math.floor(Math.random() * 25),
+            diplomatic: Math.floor(Math.random() * 25),
+            defensive: Math.floor(Math.random() * 25),
+          };
+
+      const allianceParams = storedAllianceParams
+        ? JSON.parse(storedAllianceParams)
+        : null;
+
       wsRef.current.send(
         JSON.stringify({
           type: "join",
@@ -142,6 +191,8 @@ export const useGame = () => {
           playerId: `player_${Math.random().toString(36).substring(2, 8)}`,
           name,
           personality,
+          strategy,
+          allianceParams,
         })
       );
     }
@@ -154,4 +205,4 @@ export const useGame = () => {
     error,
     joinRoom,
   };
-}; 
+};
