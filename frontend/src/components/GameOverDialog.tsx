@@ -7,7 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/dialog";
+} from "@/components/Dialog";
 import { Button } from "@/components/Button";
 import { useRouter } from "next/navigation";
 import MintTokensButton from "./MintTokensButton";
