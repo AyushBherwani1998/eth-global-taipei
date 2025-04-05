@@ -81,3 +81,6 @@ NEXT_PUBLIC_MULTIBAAS_API_KEY =
 1. [Cusrsor AI](https://x.com/cursor_ai)
 2. [Chat GPT](https://x.com/ChatGPTapp)
 3. [Ayush Bherwani](https://x.com/ayushbherwani) :P
+
+## Resources
+1. [Slides](https://docs.google.com/presentation/d/1Dv2f6UNr9DvKwoH6O5-gUsmm5LD4_lDUkhEXlEBBRBM/edit?usp=sharing)
