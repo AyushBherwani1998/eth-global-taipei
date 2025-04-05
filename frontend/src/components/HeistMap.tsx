@@ -15,7 +15,7 @@ type HeistMapProps = {
 };
 
 export default function HeistMap({ grid, currentPlayer }: HeistMapProps) {
-  const hexSize = 50;
+  const hexSize = 36;
   const hexWidth = Math.sqrt(3) * hexSize;
   const hexHeight = 2 * hexSize;
 
