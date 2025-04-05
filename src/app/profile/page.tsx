@@ -15,7 +15,7 @@ import {
 import Header from "@/components/Header";
 import { SelfQrCode } from "@/components/SelfQRCode";
 
-export default function Home() {
+export default function Profile() {
   const [username, setUsername] = useState("");
   const [isWalletConnected, setIsWalletConnected] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
