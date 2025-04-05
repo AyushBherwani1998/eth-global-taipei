@@ -22,10 +22,25 @@ type Hexagon = {
   resources: number;
 };
 
+type Strategy = {
+  opportunistic: number;
+  aggressive: number;
+  diplomatic: number;
+  defensive: number;
+};
+
+type AllianceParams = {
+  giveMax: number;
+  getMin: number;
+  enabled: boolean;
+} | null;
+
 type Player = {
   id: string;
   name: string;
   personality: string;
+  strategy: Strategy;
+  allianceParams: AllianceParams;
   ws: WebSocket;
   territories: number;
   resources: number;
@@ -86,6 +101,7 @@ wss.on("connection", (ws) => {
     if (msg.type === "join") {
       let room = rooms[msg.roomId];
       if (!room) {
+        console.log("Generating new room");
         room = {
           id: msg.roomId,
           players: [],
@@ -101,10 +117,22 @@ wss.on("connection", (ws) => {
         return;
       }
 
+      // Parse strategy and alliance params with defaults
+      const strategy: Strategy = msg.strategy || {
+        opportunistic: 25,
+        aggressive: 25,
+        diplomatic: 25,
+        defensive: 25,
+      };
+
+      const allianceParams: AllianceParams = msg.allianceParams || null;
+
       const player: Player = {
         id: msg.playerId,
         name: msg.name,
         personality: msg.personality,
+        strategy,
+        allianceParams,
         ws: ws as any,
         territories: 0,
         resources: 0,
@@ -147,6 +175,50 @@ wss.on("connection", (ws) => {
         });
         await new Promise((res) => setTimeout(res, 1000));
         runGameLoop(room);
+      }
+    } else if (msg.type === "alliance") {
+      const room = Object.values(rooms).find(r => 
+        r.players.some(p => p.id === msg.playerId)
+      );
+      
+      if (!room) return;
+
+      const currentPlayer = room.players.find(p => p.id === msg.playerId);
+      const targetPlayer = room.players.find(p => p.id === msg.targetPlayerId);
+
+      if (!currentPlayer || !targetPlayer) return;
+
+      // Check if either player has alliance params disabled
+      if (!currentPlayer.allianceParams?.enabled || !targetPlayer.allianceParams?.enabled) {
+        ws.send(JSON.stringify({ 
+          type: "error", 
+          message: "Alliances are not enabled for one or both players" 
+        }));
+        return;
+      }
+
+      // Check if alliance can be automatically formed based on proposer's giveMax and target's getMin
+      if (currentPlayer.allianceParams.giveMax >= targetPlayer.allianceParams.getMin) {
+        // Add players to each other's allies list
+        if (!currentPlayer.allies.includes(targetPlayer.id)) {
+          currentPlayer.allies.push(targetPlayer.id);
+          targetPlayer.allies.push(currentPlayer.id);
+        }
+
+        // Remove from enemies list if they were enemies
+        const enemyIndex = currentPlayer.enemies.indexOf(targetPlayer.id);
+        if (enemyIndex !== -1) {
+          currentPlayer.enemies.splice(enemyIndex, 1);
+          targetPlayer.enemies.splice(targetPlayer.enemies.indexOf(currentPlayer.id), 1);
+        }
+
+        broadcast(room, { 
+          message: `${currentPlayer.name} and ${targetPlayer.name} formed an alliance` 
+        });
+      } else {
+        broadcast(room, { 
+          message: `${currentPlayer.name} and ${targetPlayer.name} could not form an alliance - terms not acceptable` 
+        });
       }
     } else if (msg.type === "action") {
       const room = Object.values(rooms).find(r => 
@@ -335,7 +407,7 @@ wss.on("connection", (ws) => {
               name: p.name,
               personality: p.personality,
               territories: p.territories,
-              resources: p.resources
+              resources: p.resources 
             })),
             turn: room.turn,
             message: `${player.name} left. Waiting for ${
@@ -375,7 +447,11 @@ function broadcast(room: GameRoom, data: any) {
       name: p.name,
       personality: p.personality,
       territories: p.territories,
-      resources: p.resources
+      resources: p.resources,
+      allies: p.allies,
+      enemies: p.enemies,
+      strategy: p.strategy,
+      allianceParams: p.allianceParams
     })),
     turn: room.turn,
     message: data.message || "",
@@ -419,7 +495,7 @@ async function runGameLoop(room: GameRoom) {
       if (!player.ws) continue; // Skip disconnected players
 
       const gameState = createStateDescription(room, player);
-      const prompt = buildPrompt(gameState);
+      const prompt = buildPrompt(gameState, player);
 
       try {
         const res = await openai.chat.completions.create({
@@ -545,43 +621,61 @@ ${room.grid.map((hex) => hex.owner || '.').join(" ")}
 `;
 }
 
-function buildPrompt(stateDesc: string): string {
-  return `Faction: ${stateDesc.split('\n')[1].split(': ')[1]}
-Personality: ${stateDesc.split('\n')[2].split(': ')[1]}
-Owned Territories: ${stateDesc.split('\n')[3].split(': ')[1]}
-Allies: ${stateDesc.split('\n')[4].split(': ')[1]}
-Enemies: ${stateDesc.split('\n')[5].split(': ')[1]}
-Adjacent Neutral Regions: ${stateDesc.split('\n')[6].split(': ')[1]}
-Adjacent Enemy Regions: ${stateDesc.split('\n')[7].split(': ')[1]}
+function buildPrompt(stateDesc: string, player: Player): string {
+  return `You are controlling the faction '${player.name}' with the following characteristics:
 
-Other Factions:
-${stateDesc.split('\n').slice(8).join('\n')}
+Strategy Profile:
+- Opportunistic: ${player.strategy.opportunistic}%
+- Aggressive: ${player.strategy.aggressive}%
+- Diplomatic: ${player.strategy.diplomatic}%
+- Defensive: ${player.strategy.defensive}%
 
-Memory:
-${stateDesc.split('\n').slice(-3).join('\n')}
+Alliance Parameters:
+- Alliance Enabled: ${player.allianceParams?.enabled ? 'Yes' : 'No'}
+- Maximum Resources to Give: ${player.allianceParams?.giveMax || 0}
+- Minimum Resources to Receive: ${player.allianceParams?.getMin || 0}
+
+Current State:
+${stateDesc}
 
 Strategic Guidelines:
-- Each faction can only have ONE alliance
-- Choose allies carefully as you cannot switch allies later
-- Alliances lead to shared victory
-- Territory control is important for victory
-- Consider both short-term and long-term benefits of your actions
-- Betraying allies may have long-term consequences
-- If there are no empty territories, expand to the nearest neutral or enemy territory
-- Only attack when there are valid enemy territories adjacent to your own
-- Do not attempt to attack if there are no adjacent enemy territories
-- Do not attack allies under any circumstances
-- Attacks are always successful if the target is valid
+1. Your strategy profile influences your decision-making:
+   - Higher opportunistic values favor expansion and resource gathering
+   - Higher aggressive values favor attacking and conquest
+   - Higher diplomatic values favor alliances and cooperation
+   - Higher defensive values favor territory protection and resource conservation
 
+2. Alliance Formation:
+   - Alliances are automatically formed when both parties' terms are met
+   - Your giveMax must be >= other player's getMin
+   - Your getMin must be <= other player's giveMax
+   - Consider your alliance parameters when proposing alliances
 
-Possible actions:
-  Expand:( <RegionName>) (take unclaimed territory)
-  Attack:( <RegionName>) (attack enemy territory - only if adjacent and not an ally)
-  Ally: <FactionName> (form exclusive alliance for shared victory)
-  Peace: <FactionName> (make peace with another faction)
-  Trade: <FactionName> (trade resources with another faction)
+3. Territory Control:
+   - Expand to unclaimed territories when possible
+   - Attack enemy territories based on your aggressive strategy
+   - Protect your territories based on your defensive strategy
 
-Your decision:`;
+4. Resource Management:
+   - Gather resources based on your opportunistic strategy
+   - Share resources with allies based on your diplomatic strategy
+   - Consider your alliance parameters when trading resources
+
+Possible Actions:
+1. Expand: Take unclaimed territory
+2. Attack: Attack enemy territory (only if adjacent and not an ally)
+3. Ally: Propose alliance with another faction
+4. Trade: Exchange resources with another faction
+5. Hold: Maintain current position
+
+Your decision should reflect your strategy profile and alliance parameters. Consider:
+- Your current resources and territory
+- Available expansion opportunities
+- Potential alliance partners
+- Enemy positions and strength
+- Your strategic priorities based on your profile
+
+Make your decision:`;
 }
 
 function processDecision(room: GameRoom, player: Player, decision: string) {
