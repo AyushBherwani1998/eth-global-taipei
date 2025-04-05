@@ -1,4 +1,5 @@
 import { createCaveatBuilder, createDelegation, createRootDelegation, DelegationStruct, Implementation, MetaMaskSmartAccount } from "@metamask-private/delegator-core-viem";
+import { Hex } from "viem";
 
 export const useDelegationUtils = () => {
 
@@ -11,8 +12,9 @@ export const useDelegationUtils = () => {
   }): Promise<DelegationStruct> {
     const transferAmount = maxTradeFee * 10n**6n;
     const caveatBuilder = createCaveatBuilder(delegator.environment);
+    const cloudWalletAddress = process.env.NEXT_PUBLIC_MULTIBAAS_CLOUD_WALLET_ADDRESS as Hex;
     const caveats = caveatBuilder.addCaveat("erc20TransferAmount",
-        "0xCa9C01d814433a4052d771f359d68fde97F87d1f",
+        cloudWalletAddress,
         transferAmount,
       ).addCaveat("limitedCalls",
         1
@@ -20,7 +22,7 @@ export const useDelegationUtils = () => {
 
     const delegation = createRootDelegation(
       delegator.address,
-     "0xCa9C01d814433a4052d771f359d68fde97F87d1f",
+      cloudWalletAddress,
       caveats,
     );
 

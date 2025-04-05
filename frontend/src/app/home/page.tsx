@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import useDelegatorSmartAccount from "@/hooks/useDelegatorSmartAccout";
 import { useDelegationUtils } from "@/hooks/useDelegationUtils";
 import { useAccountAbstractionUtils } from "@/hooks/useAccountAbstractionUtils";
-import { encodeFunctionData, erc20Abi, prepareEncodeFunctionData } from "viem";
+import { encodeFunctionData, erc20Abi, Hex, prepareEncodeFunctionData } from "viem";
 
 export default function StrategyLayout() {
   const router = useRouter();
@@ -48,6 +48,7 @@ export default function StrategyLayout() {
             className="w-full py-6 text-base font-medium border-zinc-700"
             onClick={async () => {
               if (smartAccount) {
+                const cloudWalletAddress = process.env.NEXT_PUBLIC_MULTIBAAS_CLOUD_WALLET_ADDRESS as Hex;
                 const signedDelegation = await delegate({
                   delegator: smartAccount,
                   maxTradeFee: 2n * 10n ** 6n,
@@ -61,7 +62,7 @@ export default function StrategyLayout() {
                 const data = encodeFunctionData({
                   ...transfer,
                   args: [
-                    "0xCa9C01d814433a4052d771f359d68fde97F87d1f",
+                    cloudWalletAddress,
                     1n * 10n ** 6n,
                   ],
                 });
