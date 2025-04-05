@@ -32,7 +32,7 @@ export default function LandingPage() {
         </div>
 
         {/* Play Button */}
-        <Link href="/game-profile" className="mb-16 z-10">
+        <Link href="/profile" className="mb-16 z-10">
           <Button
             className="text-lg px-8 py-6 rounded-full bg-white text-black hover:bg-zinc-200 transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.5)]"
             size="lg"
