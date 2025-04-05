@@ -95,6 +95,19 @@ export default function StrategyForm() {
     });
   };
 
+  // Store strategy and alliance params in localStorage when they change
+  React.useEffect(() => {
+    localStorage.setItem("strategy", JSON.stringify(strategy));
+    localStorage.setItem(
+      "allianceParams",
+      JSON.stringify({
+        giveMax: 0,
+        getMin: 0,
+        enabled: isAllianceChecked,
+      })
+    );
+  }, [strategy, isAllianceChecked]);
+
   return (
     <div>
       <Card className="border-zinc-800 pt-2 pb-2">

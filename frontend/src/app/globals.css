@@ -120,3 +120,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+.flicker-animation {
+  animation: flicker 1s infinite alternate;
+}
+
+@keyframes flicker {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
