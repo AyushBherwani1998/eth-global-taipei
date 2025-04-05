@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { Player } from "@/hooks/useGameState";
+import useDelegatorSmartAccount from "@/hooks/useDelegatorSmartAccout";
 
 interface LeaderboardProps {
   players: Player[];
@@ -11,6 +12,7 @@ interface LeaderboardProps {
 
 export default function Leaderboard({ players, currentPlayerId }: LeaderboardProps) {
   const [sortedPlayers, setSortedPlayers] = useState<Player[]>([]);
+  const { smartAccount } = useDelegatorSmartAccount();
 
   useEffect(() => {
     // Sort players by territories (descending)
@@ -28,7 +30,7 @@ export default function Leaderboard({ players, currentPlayerId }: LeaderboardPro
               <span className="text-zinc-500">#{index + 1}</span>
               <Image
                 src={`https://api.cloudnouns.com/v1/pfp?background=n&body=none&text=${encodeURIComponent(
-                  player.name
+                  player.id
                 )}&accessory=none`}
                 alt="Player Icon"
                 width={32}
@@ -38,7 +40,7 @@ export default function Leaderboard({ players, currentPlayerId }: LeaderboardPro
               />
               <span className="font-medium">
                 {player.name}
-                {player.id === currentPlayerId && (
+                {player.id === smartAccount?.address && (
                   <span className="text-zinc-500 ml-2">You</span>
                 )}
               </span>

@@ -9,12 +9,12 @@ import { useEffect, useState } from "react";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 
 export default function useDelegatorSmartAccount(): {
-  smartAccount: MetaMaskSmartAccount | null;
+  smartAccount: MetaMaskSmartAccount<Implementation> | null;
 } {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
-  const [smartAccount, setSmartAccount] = useState<MetaMaskSmartAccount | null>(
+  const [smartAccount, setSmartAccount] = useState<MetaMaskSmartAccount<Implementation> | null>(
     null
   );
 

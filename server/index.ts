@@ -4,6 +4,9 @@ import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { OpenAI } from "openai";
 import { config } from "dotenv";
+import { transferAmount } from "./multibaas";
+import { Hex } from "viem";
+
 
 config();
 const app = express();
@@ -472,7 +475,7 @@ function broadcast(room: GameRoom, data: any) {
 
   // Add map visualization to the broadcast data
   const enrichedData = {
-    type: "update",
+    type: data.type || "update",
     grid: room.grid,
     players: room.players.map((p) => ({
       id: p.id,
@@ -595,12 +598,23 @@ async function runGameLoop(room: GameRoom) {
     `Controlled ${finalResults.winner.controlPercentage}% of the map`
   );
 
+  const winner = finalResults.winner;
+  const hash = await transferAmount(BigInt(2), winner.playerId as Hex);
   // Broadcast final results to all players
+  broadcast(room, {
+    type: "update",
+    grid: room.grid,
+    finalResults: finalResults,
+    message: `🏆 Game Over! Winner: ${finalResults.winner.name} with ${finalResults.winner.controlPercentage}% control 
+    \n2 USDC has been transferred to ${winner.name}: ${hash}`,
+  });
+
   broadcast(room, {
     type: "end",
     grid: room.grid,
     finalResults: finalResults,
-    message: `🏆 Game Over! Winner: ${finalResults.winner.name} (${finalResults.winner.personality}) with ${finalResults.winner.controlPercentage}% control`,
+    message: `🏆 Game Over! Winner: ${finalResults.winner.name} with ${finalResults.winner.controlPercentage}% control 
+    \n2 USDC has been transferred to ${winner.name}: ${hash}`,
   });
 
   // Clean up the room
@@ -662,6 +676,7 @@ function calculateFinalResults(room: GameRoom) {
       controlPercentage,
       allies: player.allies,
       enemies: player.enemies,
+      playerId: player.id,
     };
   });
 
