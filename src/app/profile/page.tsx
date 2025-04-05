@@ -14,11 +14,14 @@ import {
 } from "@radix-ui/react-dialog";
 import Header from "@/components/Header";
 import { SelfQrCode } from "@/components/SelfQRCode";
+import { useRouter } from "next/navigation";
 
 export default function Profile() {
   const [username, setUsername] = useState("");
-  const [isWalletConnected, setIsWalletConnected] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const router = useRouter();
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUsername(e.target.value);
@@ -27,11 +30,13 @@ export default function Profile() {
   const handleVerify = () => {
     // Logic to verify the user goes here
     setIsVerified(true);
+    setIsDialogOpen(false);
   };
 
   const handleSaveProfile = () => {
     // Save profile logic would go here
     console.log("Saving profile with username:", username);
+    router.push("/home");
   };
 
   return (
@@ -55,7 +60,7 @@ export default function Profile() {
               </h2>
               {isVerified && <h2 className="text-2xl font-medium">✅</h2>}
             </div>
-            <Dialog>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button
                   variant="outline"
