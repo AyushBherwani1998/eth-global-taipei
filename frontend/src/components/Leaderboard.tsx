@@ -2,20 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { Player } from "@/hooks/useGameState";
 
-type Player = {
-  id: string;
-  name: string;
-  personality: string;
-  territories: number;
-  resources: number;
-  color: string;
-};
-
-type LeaderboardProps = {
+interface LeaderboardProps {
   players: Player[];
-  currentPlayerId?: string;
-};
+  currentPlayerId: string;
+}
 
 export default function Leaderboard({ players, currentPlayerId }: LeaderboardProps) {
   const [sortedPlayers, setSortedPlayers] = useState<Player[]>([]);

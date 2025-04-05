@@ -1,144 +1,21 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import HeistMap from "@/components/HeistMap";
+import React from "react";
+import { useGame } from "@/hooks/useGameState";
 import Leaderboard from "@/components/Leaderboard";
 import ActivityFeed from "@/components/ActivityFeed";
+import HeistMap from "@/components/HeistMap";
 import TurnCounter from "@/components/TurnCounter";
 
-type Hexagon = {
-  q: number;
-  r: number;
-  owner: string | null;
-  resources: number;
-};
-
-type Player = {
-  id: string;
-  name: string;
-  personality: string;
-  territories: number;
-  resources: number;
-  color: string;
-};
-
-type GameState = {
-  grid: Hexagon[];
-  players: Player[];
-  turn: number;
-  message: string;
-  currentPlayer: string;
-  playerCount: number;
-  started: boolean;
-};
-
 export default function GameLayout() {
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [playerId, setPlayerId] = useState<string>("");
-  const [messageHistory, setMessageHistory] = useState<string[]>([]);
-  const wsRef = useRef<WebSocket | null>(null);
+  const { isConnected, gameState, messageHistory, joinRoom } = useGame();
 
-  const generateRandomHex = (length: number) => {
-    const characters = "0123456789abcdef";
-    let result = "";
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
+  // Join game when component mounts
+  React.useEffect(() => {
+    if (isConnected) {
+      joinRoom(`Player_${Math.random().toString(36).substring(2, 6)}`, "aggressive");
     }
-    return result;
-  };
-
-  useEffect(() => {
-    // Generate random player ID and name
-    const newPlayerId = `player_${generateRandomHex(8)}`;
-    setPlayerId(newPlayerId);
-
-    // Connect to WebSocket server
-    const ws = new WebSocket("ws://localhost:4000");
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log("Connected to game server");
-      // Join the game room
-      ws.send(
-        JSON.stringify({
-          type: "join",
-          roomId: "default",
-          playerId: newPlayerId,
-          name: `Player_${generateRandomHex(4)}`,
-          personality: "aggressive",
-        })
-      );
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("Received WebSocket message:", data); // Debug log
-
-        if (data.type === "update") {
-          // Ensure we have the required data
-          if (data.grid && Array.isArray(data.grid)) {
-            const formattedGrid = data.grid.map((hex: any) => ({
-              q: Number(hex.q),
-              r: Number(hex.r),
-              owner: hex.owner,
-              resources: Number(hex.resources) || 0,
-            }));
-
-            const formattedPlayers = data.players.map((player: any) => ({
-              id: player.id,
-              name: player.name,
-              personality: player.personality,
-              territories: Number(player.territories) || 0,
-              resources: Number(player.resources) || 0,
-            }));
-
-            setGameState({
-              grid: formattedGrid,
-              players: formattedPlayers,
-              turn: Number(data.turn) || 0,
-              message: data.message || "",
-              currentPlayer: data.currentPlayer || "",
-              playerCount: Number(data.playerCount) || 0,
-              started: Boolean(data.started),
-            });
-
-            // Add new message to history if it exists
-            if (data.message) {
-              setMessageHistory((prev) => [...prev, data.message]);
-            }
-          }
-        } else if (data.type === "error") {
-          console.error("Server error:", data.message);
-          setMessageHistory((prev) => [...prev, `Error: ${data.message}`]);
-        }
-      } catch (error) {
-        console.error("Error parsing WebSocket message:", error);
-        setMessageHistory((prev) => [...prev, "Error parsing server message"]);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      setMessageHistory((prev) => [...prev, "WebSocket connection error"]);
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-      setMessageHistory((prev) => [...prev, "Connection to server closed"]);
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, []);
-
-  // Debug log to check game state
-  useEffect(() => {
-    console.log("Current game state:", gameState);
-  }, [gameState]);
+  }, [isConnected, joinRoom]);
 
   return (
     <div className="min-h-screen bg-black text-white p-4">
@@ -146,8 +23,8 @@ export default function GameLayout() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-4">
             <Leaderboard
-              players={gameState?.players || []}
-              currentPlayerId={playerId}
+              players={gameState.players}
+              currentPlayerId={gameState.currentPlayer}
             />
             <ActivityFeed messages={messageHistory} />
           </div>
@@ -165,8 +42,8 @@ export default function GameLayout() {
               )}
             </div>
             <HeistMap
-              grid={gameState?.grid || []}
-              currentPlayer={gameState?.currentPlayer}
+              grid={gameState.grid}
+              currentPlayer={gameState.currentPlayer}
             />
           </div>
         </div>

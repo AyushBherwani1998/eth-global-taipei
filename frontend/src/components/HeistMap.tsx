@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { Hexagon as HexagonType } from "@/hooks/useGameState";
 
 type Hexagon = {
   q: number;
@@ -9,10 +10,10 @@ type Hexagon = {
   resources: number;
 };
 
-type HeistMapProps = {
-  grid: Hexagon[];
-  currentPlayer: string | undefined;
-};
+interface HeistMapProps {
+  grid: HexagonType[];
+  currentPlayer: string;
+}
 
 export default function HeistMap({ grid, currentPlayer }: HeistMapProps) {
   const hexSize = 36;
